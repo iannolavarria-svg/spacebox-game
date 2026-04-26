@@ -1,0 +1,48 @@
+name: Build APK
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y python3-pip zip unzip openjdk-17-jdk autoconf automake libtool pkg-config
+          pip3 install --upgrade pip
+          pip3 install buildozer==1.5.0 cython==0.29.36
+
+      # 🧹 Limpiar build anterior
+      - name: Clean buildozer
+        run: rm -rf .buildozer
+
+      # 🔥 Forzar config correcta (evita errores con pygame)
+      - name: Fix buildozer.spec
+        run: |
+          sed -i 's/^requirements.*/requirements = python3,pygame,sdl2,sdl2_image,sdl2_mixer,sdl2_ttf/' buildozer.spec
+          sed -i 's/icon.filename = .*/icon.filename = icon.png/' buildozer.spec
+          sed -i '/android.ndk/d' buildozer.spec
+          echo "==== REQUIREMENTS ===="
+          grep requirements buildozer.spec
+
+      # 🔨 Build APK
+      - name: Build APK
+        run: buildozer -v android debug
+
+      # 🔍 Buscar APK generado
+      - name: Find APK
+        if: always()
+        run: find . -name "*.apk" 2>/dev/null
+
+      # 📦 Subir APK
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: spacebox-apk
+          path: "**/*.apk"
