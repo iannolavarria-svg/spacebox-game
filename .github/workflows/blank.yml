@@ -9,11 +9,25 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Download release zip
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y python3-pip zip unzip openjdk-17-jdk
+          pip3 install buildozer cython
+
+      - name: Download and extract zip
         run: |
           curl -L -o game.zip https://github.com/iannolavarria-svg/spacebox-game/releases/latest/download/spacebox.zip
           unzip game.zip
-          ls -la
+          find . -maxdepth 2 -type d
 
-      - name: Show folder contents
-        run: find . -maxdepth 2 -type d
+      - name: Build APK
+        run: |
+          cd "spacebox n"
+          buildozer android debug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: spacebox-apk
+          path: "spacebox n/bin/*.apk"
