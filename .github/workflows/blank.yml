@@ -37,3 +37,6 @@ jobs:
         with:
           name: spacebox-apk
           path: bin/*.apk
+      - name: Find APK
+        if: always()
+        run: find . -name "*.apk" 2>/dev/null
