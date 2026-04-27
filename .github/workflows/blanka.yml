@@ -1,0 +1,59 @@
+name: Build APK
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y python3-pip zip unzip openjdk-17-jdk autoconf automake libtool pkg-config
+          pip3 install --upgrade pip
+          pip3 install buildozer==1.5.0 cython==0.29.36
+
+      # 🧹 Limpiar builds anteriores
+      - name: Clean buildozer
+        run: rm -rf .buildozer
+
+      # 📦 Descargar ZIP
+      - name: Download zip
+        run: |
+          curl -L -o game.zip https://github.com/iannolavarria-svg/spacebox-game/releases/latest/download/spacebox.zip
+
+      # 📂 Descomprimir ZIP
+      - name: Unzip project
+        run: |
+          unzip -o game.zip
+
+      # 🗑️ Borrar ZIP después
+      - name: Delete zip
+        run: rm game.zip
+
+      # 🔍 Ver estructura (debug)
+      - name: Show files
+        run: ls -R
+
+      # 🔨 Build (desde donde esté el spec)
+      - name: Build APK
+        run: |
+          cd $(dirname $(find . -name buildozer.spec | head -n 1))
+          buildozer -v android debug
+
+      # 🔍 Buscar APK
+      - name: Find APK
+        if: always()
+        run: find . -name "*.apk" 2>/dev/null
+
+      # 📦 Subir APK
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: spacebox-apk
+          path: "**/*.apk"
