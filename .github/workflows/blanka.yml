@@ -18,7 +18,6 @@ jobs:
           pip3 install --upgrade pip
           pip3 install buildozer==1.5.0 cython==0.29.36
 
-      # 🧹 Limpiar builds anteriores
       - name: Clean buildozer
         run: rm -rf .buildozer
 
@@ -29,21 +28,33 @@ jobs:
 
       # 📂 Descomprimir ZIP
       - name: Unzip project
-        run: |
-          unzip -o game.zip
+        run: unzip -o game.zip
 
-      # 🗑️ Borrar ZIP después
+      # 🗑️ Borrar ZIP
       - name: Delete zip
         run: rm game.zip
 
-      # 🔍 Ver estructura (debug)
+      # 🔍 Debug estructura
       - name: Show files
         run: ls -R
 
-      # 🔨 Build (desde donde esté el spec)
+      # 🔍 Buscar buildozer.spec (y fallar si no existe)
+      - name: Locate buildozer.spec
+        run: |
+          SPEC=$(find . -name buildozer.spec | head -n 1)
+
+          if [ -z "$SPEC" ]; then
+            echo "❌ No se encontró buildozer.spec dentro del ZIP"
+            exit 1
+          fi
+
+          echo "✅ buildozer.spec encontrado en: $SPEC"
+          echo "SPEC_PATH=$SPEC" >> $GITHUB_ENV
+
+      # 🔨 Build APK
       - name: Build APK
         run: |
-          cd $(dirname $(find . -name buildozer.spec | head -n 1))
+          cd $(dirname "$SPEC_PATH")
           buildozer -v android debug
 
       # 🔍 Buscar APK
