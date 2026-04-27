@@ -1,0 +1,76 @@
+name: Build APK
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y python3-pip zip unzip openjdk-17-jdk autoconf automake libtool pkg-config
+          pip3 install --upgrade pip
+          pip3 install buildozer==1.5.0 cython==0.29.36
+
+      - name: Clean buildozer
+        run: rm -rf .buildozer
+
+      # 📦 Descargar ZIP (FIX REAL)
+      - name: Download zip
+        run: |
+          curl -L --fail -o spacebox.zip https://github.com/iannolavarria-svg/spacebox-game/releases/download/apc/spacebox.zip
+
+      # 🔍 Verificar que sea un zip válido
+      - name: Verify zip
+        run: |
+          file spacebox.zip
+          ls -lh spacebox.zip
+
+      # 📂 Descomprimir
+      - name: Unzip project
+        run: unzip -o spacebox.zip
+
+      # 🗑️ Borrar ZIP
+      - name: Delete zip
+        run: rm spacebox.zip
+
+      # 🔍 Debug estructura
+      - name: Show files
+        run: ls -R
+
+      # 🔍 Buscar buildozer.spec
+      - name: Locate buildozer.spec
+        run: |
+          SPEC=$(find . -name buildozer.spec | head -n 1)
+
+          if [ -z "$SPEC" ]; then
+            echo "❌ No se encontró buildozer.spec dentro del ZIP"
+            exit 1
+          fi
+
+          echo "✅ buildozer.spec encontrado en: $SPEC"
+          echo "SPEC_PATH=$SPEC" >> $GITHUB_ENV
+
+      # 🔨 Build APK
+      - name: Build APK
+        run: |
+          cd $(dirname "$SPEC_PATH")
+          buildozer -v android debug
+
+      # 🔍 Buscar APK
+      - name: Find APK
+        if: always()
+        run: find . -name "*.apk" 2>/dev/null
+
+      # 📦 Subir APK
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: spacebox-apk
+          path: "**/*.apk"
